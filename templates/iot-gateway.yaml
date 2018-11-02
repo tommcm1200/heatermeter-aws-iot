@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  Creates required AWS resources for Heatmeter data capture.
+  Creates required AWS resources for Heatmeter data capture through AWS IOT Core.
 Parameters:
   HeatermeterThingID:
     Type: String
@@ -9,19 +9,9 @@ Parameters:
   CertificateARN:
     Type: String
     Description: The Amazon Resource Name (ARN) of the existing AWS IoT certificate.
-  # SNSTopicName:
-  #   Type: String
-  #   Default: aws-iot-button-sns-topic
-  #   Description: The name of the Amazon SNS topic for AWS CloudFormation to create.
-  # SNSTopicRoleName:
-  #   Type: String
-  #   Default: aws-iot-button-sns-topic-role
-  #   Description: >-
-  #     The name of the IAM role for AWS CloudFormation to create. This IAM role
-  #     allows AWS IoT to send notifications to the Amazon SNS topic.
-  # EmailAddress:
-  #   Type: String
-  #   Description: The email address for the Amazon SNS topic to send information to.
+  S3BucketARNRawEvents:
+    Type: String
+    Description: The Amazon Resource Name (ARN) for the S3 Bucket to store your raw events.
 
 Resources:
   IoTThing:
@@ -58,7 +48,34 @@ Resources:
             Action: "sts:AssumeRole"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSIoTRuleActions
-      RoleName: HeatermeterActionRole
+      RoleName: !Sub HeatermeterActionRole
+
+  KDFHRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Action: 'sts:AssumeRole'
+            Condition:
+              StringEquals:
+                'sts:ExternalId': !Ref 'AWS::AccountId'      
+  KDFHPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: firehose_Delivery_policy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: "*"
+            Resource: "*"
+      Roles:
+        - !Ref KDFHRole                
 
   IoTPolicyPrincipalAttachment:
     Type: 'AWS::IoT::PolicyPrincipalAttachment'
@@ -71,42 +88,6 @@ Resources:
     Properties:
       Principal: !Ref CertificateARN
       ThingName: !Ref IoTThing
- 
-  # SNSTopic:
-  #   Type: 'AWS::SNS::Topic'
-  #   Properties:
-  #     DisplayName: AWS IoT Button Press Notification
-  #     Subscription:
-  #       - Endpoint: !Ref EmailAddress
-  #         Protocol: email
-  #     TopicName: !Ref SNSTopicName
-
-  # SNSTopicRole:
-  #   Type: 'AWS::IAM::Role'
-  #   Properties:
-  #     AssumeRolePolicyDocument:
-  #       Version: 2012-10-17
-  #       Statement:
-  #         - Effect: Allow
-  #           Principal:
-  #             Service: iot.amazonaws.com
-  #           Action: 'sts:AssumeRole'
-  #     Path: /
-  #     Policies:
-  #       - PolicyDocument:
-  #           Version: 2012-10-17
-  #           Statement:
-  #             - Effect: Allow
-  #               Action: 'sns:Publish'
-  #               Resource: !Join 
-  #                 - ''
-  #                 - - 'arn:aws:sns:'
-  #                   - !Ref 'AWS::Region'
-  #                   - ':'
-  #                   - !Ref 'AWS::AccountId'
-  #                   - ':'
-  #                   - !Ref SNSTopicName
-  #         PolicyName: !Ref SNSTopicRoleName
 
   TopicRuleTemps:
     Type: 'AWS::IoT::TopicRule'
@@ -121,6 +102,25 @@ Resources:
         RuleDisabled: false
         Sql: !Sub SELECT time, temps FROM 'heatermeter/${HeatermeterThingID}'
 
+  TopicRuleTempProbe1:
+    Type: 'AWS::IoT::TopicRule'
+    Properties:
+      RuleName: !Sub '${HeatermeterThingID}_temp_probe_1'
+      TopicRulePayload:
+        Actions:
+          - Republish:
+              RoleArn: !GetAtt IoTRole.Arn
+              Topic: !Sub 'heatermeter/${HeatermeterThingID}/temps/probe1'
+        AwsIotSqlVersion: 2016-03-23
+        RuleDisabled: false
+        Sql: !Sub SELECT (SELECT c FROM temps WHERE n = 'Probe 1') as probe_1 FROM 'heatermeter/${HeatermeterThingID}'
+        
+#  Working https://docs.aws.amazon.com/iot/latest/developerguide/iot-rules.html
+# SELECT (SELECT c FROM temps WHERE n = 'Probe 1') as probe_1 FROM 'heatermeter/${HeatermeterThingID}'
+# SELECT get((SELECT c FROM temps WHERE n = 'Probe 1'),c).c as probe_1 FROM 'heatermeter/${HeatermeterThingID}'
+# SELECT get((SELECT v FROM e WHERE n = 'temperature'),1).v as temperature FROM 'topic'
+
+
   TopicRuleSetTemp:
     Type: 'AWS::IoT::TopicRule'
     Properties:
@@ -133,3 +133,29 @@ Resources:
         AwsIotSqlVersion: 2016-03-23
         RuleDisabled: false
         Sql: !Sub SELECT time, set FROM 'heatermeter/${HeatermeterThingID}'        
+
+  TopicRuleAll:
+    Type: 'AWS::IoT::TopicRule'
+    Properties:
+      RuleName: !Sub '${HeatermeterThingID}_all'
+      TopicRulePayload:
+        Actions:
+          - Firehose:
+              DeliveryStreamName: !Ref DeliverystreamSentimentFirehose
+              RoleArn: !GetAtt IoTRole.Arn
+        AwsIotSqlVersion: 2016-03-23
+        RuleDisabled: false
+        Sql: !Sub SELECT * FROM 'heatermeter/${HeatermeterThingID}'        
+
+  DeliverystreamSentimentFirehose:
+      Type: 'AWS::KinesisFirehose::DeliveryStream'
+      Properties:
+        DeliveryStreamName: !Sub 'heatermeter-all-events-raw'
+        ExtendedS3DestinationConfiguration:
+          BucketARN: !Ref S3BucketARNRawEvents
+          BufferingHints:
+            IntervalInSeconds: '60'
+            SizeInMBs: '1'
+          CompressionFormat: UNCOMPRESSED
+          Prefix: !Sub ${HeatermeterThingID}/raw/
+          RoleARN: !GetAtt KDFHRole.Arn

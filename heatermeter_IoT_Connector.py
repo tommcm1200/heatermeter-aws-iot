@@ -20,6 +20,7 @@ import logging
 import time
 import argparse
 import json
+from sseclient import SSEClient
 
 AllowedActions = ['both', 'publish', 'subscribe']
 
@@ -85,20 +86,10 @@ if args.useWebsocket and not args.port:  # When no port override for WebSocket, 
 if not args.useWebsocket and not args.port:  # When no port override for non-WebSocket, default to 8883
     port = 8883
 
-if args.sampleEventFile:
-    with open(sampleEventFile) as f:
-        sampleEventData = json.load(f)
-        # print(sampleEventData)
-
-# if args.sseURL:
-#     sseMessages = SSEClient(sseURL)
-#     for sseMsg in sseMessages:
-#         print(sseMsg)
-
 # Configure logging
 logger = logging.getLogger("AWSIoTPythonSDK.core")
-logger.setLevel(logging.DEBUG)
-# logger.setLevel(logging.ERROR)
+# logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.ERROR)
 streamHandler = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 streamHandler.setFormatter(formatter)
@@ -128,25 +119,26 @@ if args.mode == 'both' or args.mode == 'subscribe':
     myAWSIoTMQTTClient.subscribe(topic, 1, customCallback)
 time.sleep(2)
 
-# Publish to the same topic in a loop forever
-loopCount = 0
-while True:
-    if args.mode == 'both' or args.mode == 'publish':
-        message = {}
-        message = sampleEventData
-        # message['time'] = sampleEventData['time']
-        # message['set_temp'] = sampleEventData['set']
-        # message['probe_0'] = sampleEventData['temps'][0]['c']
-        # message['probe_1'] = sampleEventData['temps'][1]['c']
-        # message['probe_2'] = sampleEventData['temps'][2]['c']
-        # message['probe_3'] = sampleEventData['temps'][3]['c']
-
-        # message['message'] = args.message
-        # message['message'] = sampleEventData
-        # message['sequence'] = loopCount
-        messageJson = json.dumps(message)
-        myAWSIoTMQTTClient.publish(topic, messageJson, 1)
+if args.sseURL:
+    sseMessages = SSEClient(sseURL)
+    for sseMsg in sseMessages:
+        myAWSIoTMQTTClient.publish(topic, sseMsg.data, 1)
         if args.mode == 'publish':
             print('Published topic %s: %s\n' % (topic, messageJson))
-        loopCount += 1
-    time.sleep(1)
+
+# Publish to the same topic in a loop forever
+if args.sampleEventFile:
+    with open(sampleEventFile) as f:
+        sampleEventData = json.load(f)
+        # print(sampleEventData)
+        loopCount = 0
+        while True:
+            if args.mode == 'both' or args.mode == 'publish':
+                message = {}
+                message = sampleEventData
+                messageJson = json.dumps(message)
+                myAWSIoTMQTTClient.publish(topic, messageJson, 1)
+                if args.mode == 'publish':
+                    print('Published topic %s: %s\n' % (topic, messageJson))
+                loopCount += 1
+            time.sleep(1)

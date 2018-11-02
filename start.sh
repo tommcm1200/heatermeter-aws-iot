@@ -16,6 +16,7 @@ if [ ! -d ./aws-iot-device-sdk-python ]; then
   popd
 fi
 
-# run pub/sub sample app using certificates downloaded in package
-printf "\nRunning pub/sub sample application...\n"
-python basicPubSub.py -e a2b34sex7tdupr-ats.iot.ap-southeast-2.amazonaws.com -r ./certs/root-CA.crt -c ./certs/heatermeter-osx.cert.pem -k ./certs/heatermeter-osx.private.key -f "event-sample.json" --topic "heatermeter/B40429203C26"
+# run Heatermeter AWS IOT Connector app using certificates downloaded in package
+printf "\nRunning Heatermeter AWS IOT Connector application...\n"
+python heatermeter_IoT_Connector.py -e a2b34sex7tdupr-ats.iot.ap-southeast-2.amazonaws.com -r ./certs/root-CA.crt -c ./certs/heatermeter-osx.cert.pem -k ./certs/heatermeter-osx.private.key --url "http://192.168.1.37/luci/lm/stream/" --topic "heatermeter/B40429203C26"
+# python heatermeter_IoT_Connector.py -e a2b34sex7tdupr-ats.iot.ap-southeast-2.amazonaws.com -r ./certs/root-CA.crt -c ./certs/heatermeter-osx.cert.pem -k ./certs/heatermeter-osx.private.key -f "event-sample.json" --topic "heatermeter/B40429203C26"
