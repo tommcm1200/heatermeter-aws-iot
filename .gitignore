@@ -1,2 +1,5 @@
 venv/
 .vscode/
+connect_device_package/
+certs/*
+aws-iot-device-sdk-python/

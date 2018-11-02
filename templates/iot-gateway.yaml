@@ -1,41 +1,34 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  Creates required AWS resources to allow an AWS IoT button to send information
-  through an Amazon Simple Notification Service (Amazon SNS) topic to an email
-  address.
+  Creates required AWS resources for Heatmeter data capture.
 Parameters:
-  IoTButtonDSN:
+  HeatermeterThingID:
     Type: String
-    AllowedPattern: >-
-      G030[A-Z][A-Z][0=9][0-9][0-9][0-5][0-9][1-7][0-9A-HJ-NP-X][0-9A-HJ-NP-X][0-9A-HJ-NP-X][0-9A-HJ-NP-X]
-    Description: >-
-      The device serial number (DSN) of the AWS IoT Button. This can be found on
-      the back of the button. The DSN must match the pattern of
-      'G030[A-Z][A-Z][0=9][0-9][0-9][0-5][0-9][1-7][0-9A-HJ-NP-X][0-9A-HJ-NP-X][0-9A-HJ-NP-X][0-9A-HJ-NP-X]'.
+    Description: Heatermeter Thing ID (MAC Address)
+    Default:  79A6083123EE
   CertificateARN:
     Type: String
     Description: The Amazon Resource Name (ARN) of the existing AWS IoT certificate.
-  SNSTopicName:
-    Type: String
-    Default: aws-iot-button-sns-topic
-    Description: The name of the Amazon SNS topic for AWS CloudFormation to create.
-  SNSTopicRoleName:
-    Type: String
-    Default: aws-iot-button-sns-topic-role
-    Description: >-
-      The name of the IAM role for AWS CloudFormation to create. This IAM role
-      allows AWS IoT to send notifications to the Amazon SNS topic.
-  EmailAddress:
-    Type: String
-    Description: The email address for the Amazon SNS topic to send information to.
+  # SNSTopicName:
+  #   Type: String
+  #   Default: aws-iot-button-sns-topic
+  #   Description: The name of the Amazon SNS topic for AWS CloudFormation to create.
+  # SNSTopicRoleName:
+  #   Type: String
+  #   Default: aws-iot-button-sns-topic-role
+  #   Description: >-
+  #     The name of the IAM role for AWS CloudFormation to create. This IAM role
+  #     allows AWS IoT to send notifications to the Amazon SNS topic.
+  # EmailAddress:
+  #   Type: String
+  #   Description: The email address for the Amazon SNS topic to send information to.
+
 Resources:
   IoTThing:
     Type: 'AWS::IoT::Thing'
     Properties:
-      ThingName: !Join 
-        - ''
-        - - iotbutton_
-          - !Ref IoTButtonDSN
+      ThingName: !Ref HeatermeterThingID
+
   IoTPolicy:
     Type: 'AWS::IoT::Policy'
     Properties:
@@ -50,70 +43,93 @@ Resources:
                 - !Ref 'AWS::Region'
                 - ':'
                 - !Ref 'AWS::AccountId'
-                - ':topic/iotbutton/'
-                - !Ref IoTButtonDSN
+                - ':topic/heatermeter*'
+                - !Ref HeatermeterThingID
+ 
+  IoTRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: iot.amazonaws.com
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSIoTRuleActions
+      RoleName: HeatermeterActionRole
+
   IoTPolicyPrincipalAttachment:
     Type: 'AWS::IoT::PolicyPrincipalAttachment'
     Properties:
       PolicyName: !Ref IoTPolicy
       Principal: !Ref CertificateARN
+ 
   IoTThingPrincipalAttachment:
     Type: 'AWS::IoT::ThingPrincipalAttachment'
     Properties:
       Principal: !Ref CertificateARN
       ThingName: !Ref IoTThing
-  SNSTopic:
-    Type: 'AWS::SNS::Topic'
-    Properties:
-      DisplayName: AWS IoT Button Press Notification
-      Subscription:
-        - Endpoint: !Ref EmailAddress
-          Protocol: email
-      TopicName: !Ref SNSTopicName
-  SNSTopicRole:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: iot.amazonaws.com
-            Action: 'sts:AssumeRole'
-      Path: /
-      Policies:
-        - PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action: 'sns:Publish'
-                Resource: !Join 
-                  - ''
-                  - - 'arn:aws:sns:'
-                    - !Ref 'AWS::Region'
-                    - ':'
-                    - !Ref 'AWS::AccountId'
-                    - ':'
-                    - !Ref SNSTopicName
-          PolicyName: !Ref SNSTopicRoleName
-  IoTTopicRule:
+ 
+  # SNSTopic:
+  #   Type: 'AWS::SNS::Topic'
+  #   Properties:
+  #     DisplayName: AWS IoT Button Press Notification
+  #     Subscription:
+  #       - Endpoint: !Ref EmailAddress
+  #         Protocol: email
+  #     TopicName: !Ref SNSTopicName
+
+  # SNSTopicRole:
+  #   Type: 'AWS::IAM::Role'
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Version: 2012-10-17
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             Service: iot.amazonaws.com
+  #           Action: 'sts:AssumeRole'
+  #     Path: /
+  #     Policies:
+  #       - PolicyDocument:
+  #           Version: 2012-10-17
+  #           Statement:
+  #             - Effect: Allow
+  #               Action: 'sns:Publish'
+  #               Resource: !Join 
+  #                 - ''
+  #                 - - 'arn:aws:sns:'
+  #                   - !Ref 'AWS::Region'
+  #                   - ':'
+  #                   - !Ref 'AWS::AccountId'
+  #                   - ':'
+  #                   - !Ref SNSTopicName
+  #         PolicyName: !Ref SNSTopicRoleName
+
+  TopicRuleTemps:
     Type: 'AWS::IoT::TopicRule'
     Properties:
-      RuleName: !Join 
-        - ''
-        - - iotbutton_
-          - !Ref IoTButtonDSN
+      RuleName: !Sub '${HeatermeterThingID}_temps'
       TopicRulePayload:
         Actions:
-          - Sns:
-              RoleArn: !GetAtt 
-                - SNSTopicRole
-                - Arn
-              TargetArn: !Ref SNSTopic
-        AwsIotSqlVersion: 2015-10-08
+          - Republish:
+              RoleArn: !GetAtt IoTRole.Arn
+              Topic: !Sub 'heatermeter/${HeatermeterThingID}/temps'
+        AwsIotSqlVersion: 2016-03-23
         RuleDisabled: false
-        Sql: !Join 
-          - ''
-          - - SELECT * FROM 'iotbutton/
-            - !Ref IoTButtonDSN
-            - ''''
+        Sql: !Sub SELECT time, temps FROM 'heatermeter/${HeatermeterThingID}'
+
+  TopicRuleSetTemp:
+    Type: 'AWS::IoT::TopicRule'
+    Properties:
+      RuleName: !Sub '${HeatermeterThingID}_settemp'
+      TopicRulePayload:
+        Actions:
+          - Republish:
+              RoleArn: !GetAtt IoTRole.Arn
+              Topic: !Sub 'heatermeter/${HeatermeterThingID}/settemp'
+        AwsIotSqlVersion: 2016-03-23
+        RuleDisabled: false
+        Sql: !Sub SELECT time, set FROM 'heatermeter/${HeatermeterThingID}'        
