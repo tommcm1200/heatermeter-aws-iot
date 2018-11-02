@@ -32,10 +32,6 @@ def customCallback(client, userdata, message):
     print(message.topic)
     print("--------------\n\n")
 
-def convertEpochToISOFormat(seconds_since_epoch):
-    dt = datetime.datetime.utcfromtimestamp(seconds_since_epoch)
-    iso_format = dt.isoformat() + 'Z'
-
 # Read in command-line parameters
 parser = argparse.ArgumentParser()
 parser.add_argument("-e", "--endpoint", action="store", required=True, dest="host", help="Your AWS IoT custom endpoint")
