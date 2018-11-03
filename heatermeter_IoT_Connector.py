@@ -21,6 +21,7 @@ import time
 import argparse
 import json
 from sseclient import SSEClient
+from ConfigParser import SafeConfigParser
 
 AllowedActions = ['both', 'publish', 'subscribe']
 
@@ -32,55 +33,46 @@ def customCallback(client, userdata, message):
     print(message.topic)
     print("--------------\n\n")
 
-# Read in command-line parameters
-parser = argparse.ArgumentParser()
-parser.add_argument("-e", "--endpoint", action="store", required=True, dest="host", help="Your AWS IoT custom endpoint")
-parser.add_argument("-r", "--rootCA", action="store", required=True, dest="rootCAPath", help="Root CA file path")
-parser.add_argument("-c", "--cert", action="store", dest="certificatePath", help="Certificate file path")
-parser.add_argument("-k", "--key", action="store", dest="privateKeyPath", help="Private key file path")
-parser.add_argument("-p", "--port", action="store", dest="port", type=int, help="Port number override")
-parser.add_argument("-w", "--websocket", action="store_true", dest="useWebsocket", default=False,
-                    help="Use MQTT over WebSocket")
-parser.add_argument("-id", "--clientId", action="store", dest="clientId", default="basicPubSub",
-                    help="Targeted client id")
-parser.add_argument("-t", "--topic", action="store", dest="topic", default="sdk/test/Python", help="Targeted topic")
-parser.add_argument("-m", "--mode", action="store", dest="mode", default="both",
-                    help="Operation modes: %s"%str(AllowedActions))
-# parser.add_argument("-M", "--message", action="store", dest="message", default="Hello World!",
-#                     help="Message to publish")
-parser.add_argument("-M", "--message", action="store", dest="message", help="Message to publish")
-parser.add_argument("-f", "--file", action="store", dest="sampleEventFile", help="Sample Event File")
-parser.add_argument("-u", "--url", action="store", dest="sseURL", help="Connect to SSE URL")
+############################################################
+### Configuration Parse ###
+parser = SafeConfigParser()
 
-args = parser.parse_args()
-host = args.host
-rootCAPath = args.rootCAPath
-certificatePath = args.certificatePath
-privateKeyPath = args.privateKeyPath
-port = args.port
-useWebsocket = args.useWebsocket
-clientId = args.clientId
-topic = args.topic
-sampleEventFile = args.sampleEventFile
-sseURL = args.sseURL
+parser.read('heatermeter_IoT_Connector.ini')
+print("\n")
+print ("Configuration:")
+print ("\taws_iot_endpoint: %s" % parser.get('DEFAULT', 'aws_iot_endpoint'))
+print ("\troot_ca_cert_path: %s" % parser.get('DEFAULT', 'root_ca_cert_path'))
+print ("\tcert_path: %s" % parser.get('DEFAULT', 'cert_path'))
+print ("\tprivate_key_path: %s" % parser.get('DEFAULT', 'private_key_path'))
+print ("\theatermeter_sse_url: %s" % parser.get('DEFAULT', 'heatermeter_sse_url'))
+print ("\theatermeter_macaddress: %s" % parser.get('DEFAULT', 'heatermeter_macaddress'))
+print ("\tsample_event_file_path: %s" % parser.get('DEFAULT', 'sample_event_file_path'))
+print ("\twebsocket_port: %s" % parser.get('DEFAULT', 'websocket_port'))
+print ("\tclient_id: %s" % parser.get('DEFAULT', 'client_id'))
+print("\n")
 
-if args.mode not in AllowedActions:
-    parser.error("Unknown --mode option %s. Must be one of %s" % (args.mode, str(AllowedActions)))
-    exit(2)
+config = {}
+config['aws_iot_endpoint'] = parser.get('DEFAULT', 'aws_iot_endpoint')
+config['root_ca_cert_path'] = parser.get('DEFAULT', 'root_ca_cert_path')
+config['cert_path'] = parser.get('DEFAULT', 'cert_path')
+config['private_key_path'] = parser.get('DEFAULT', 'private_key_path')
+config['heatermeter_sse_url'] = parser.get('DEFAULT', 'heatermeter_sse_url')
+config['heatermeter_macaddress'] = parser.get('DEFAULT', 'heatermeter_macaddress')
+config['websocket_port'] = parser.get('DEFAULT', 'websocket_port')
+config['client_id'] = parser.get('DEFAULT', 'client_id')
 
-if args.useWebsocket and args.certificatePath and args.privateKeyPath:
-    parser.error("X.509 cert authentication and WebSocket are mutual exclusive. Please pick one.")
-    exit(2)
+host = config['aws_iot_endpoint']
+rootCAPath = config['root_ca_cert_path']
+certificatePath = config['cert_path']
+privateKeyPath = config['private_key_path']
+sseURL = config['heatermeter_sse_url']
+topic = "heatermeter/%s" % config['heatermeter_macaddress']
+# sampleEventFilePath =  config['sample_event_file_path']
+clientId = config['client_id']
+port = config['websocket_port']
+port = int(config['websocket_port'])
 
-if not args.useWebsocket and (not args.certificatePath or not args.privateKeyPath):
-    parser.error("Missing credentials for authentication.")
-    exit(2)
-
-# Port defaults
-if args.useWebsocket and not args.port:  # When no port override for WebSocket, default to 443
-    port = 443
-if not args.useWebsocket and not args.port:  # When no port override for non-WebSocket, default to 8883
-    port = 8883
+############################################################
 
 # Configure logging
 logger = logging.getLogger("AWSIoTPythonSDK.core")
@@ -92,15 +84,9 @@ streamHandler.setFormatter(formatter)
 logger.addHandler(streamHandler)
 
 # Init AWSIoTMQTTClient
-myAWSIoTMQTTClient = None
-if useWebsocket:
-    myAWSIoTMQTTClient = AWSIoTMQTTClient(clientId, useWebsocket=True)
-    myAWSIoTMQTTClient.configureEndpoint(host, port)
-    myAWSIoTMQTTClient.configureCredentials(rootCAPath)
-else:
-    myAWSIoTMQTTClient = AWSIoTMQTTClient(clientId)
-    myAWSIoTMQTTClient.configureEndpoint(host, port)
-    myAWSIoTMQTTClient.configureCredentials(rootCAPath, privateKeyPath, certificatePath)
+myAWSIoTMQTTClient = AWSIoTMQTTClient(clientId)
+myAWSIoTMQTTClient.configureEndpoint(host, port)
+myAWSIoTMQTTClient.configureCredentials(rootCAPath, privateKeyPath, certificatePath)
 
 # AWSIoTMQTTClient connection configuration
 myAWSIoTMQTTClient.configureAutoReconnectBackoffTime(1, 32, 20)
@@ -109,32 +95,27 @@ myAWSIoTMQTTClient.configureDrainingFrequency(2)  # Draining: 2 Hz
 myAWSIoTMQTTClient.configureConnectDisconnectTimeout(10)  # 10 sec
 myAWSIoTMQTTClient.configureMQTTOperationTimeout(5)  # 5 sec
 
-# Connect and subscribe to AWS IoT
 myAWSIoTMQTTClient.connect()
-if args.mode == 'both' or args.mode == 'subscribe':
-    myAWSIoTMQTTClient.subscribe(topic, 1, customCallback)
-time.sleep(2)
+myAWSIoTMQTTClient.subscribe(topic, 1, customCallback)
 
-if args.sseURL:
-    sseMessages = SSEClient(sseURL)
+if config['heatermeter_sse_url']:
+    sseMessages = SSEClient(config['heatermeter_sse_url'])
     for sseMsg in sseMessages:
         myAWSIoTMQTTClient.publish(topic, sseMsg.data, 1)
-        if args.mode == 'publish':
-            print('Published topic %s: %s\n' % (topic, messageJson))
+        print('Published topic %s: %s\n' % (topic, sseMsg.data))
 
-# Publish to the same topic in a loop forever
-if args.sampleEventFile:
-    with open(sampleEventFile) as f:
-        sampleEventData = json.load(f)
-        # print(sampleEventData)
-        loopCount = 0
-        while True:
-            if args.mode == 'both' or args.mode == 'publish':
-                message = {}
-                message = sampleEventData
-                messageJson = json.dumps(message)
-                myAWSIoTMQTTClient.publish(topic, messageJson, 1)
-                if args.mode == 'publish':
-                    print('Published topic %s: %s\n' % (topic, messageJson))
-                loopCount += 1
-            time.sleep(1)
+# # Publish to the same topic in a loop forever
+# if args.sampleEventFile:
+#     with open(sampleEventFile) as f:
+#         sampleEventData = json.load(f)
+#         # print(sampleEventData)
+#         loopCount = 0
+#         while True:
+#             if args.mode == 'both' or args.mode == 'publish':
+#                 message = {}
+#                 message = sampleEventData
+#                 messageJson = json.dumps(message)
+#                 myAWSIoTMQTTClient.publish(topic, messageJson, 1)
+#                 print('Published topic %s: %s\n' % (topic, messageJson))
+#                 loopCount += 1
+#             time.sleep(1)

@@ -25,16 +25,17 @@ Resources:
       PolicyDocument:
         Version: 2012-10-17
         Statement:
-          - Action: 'iot:Publish'
+          - Action: 
+            - 'iot:Publish'
+            - 'iot:Receive'
             Effect: Allow
-            Resource: !Join 
-              - ''
-              - - 'arn:aws:iot:'
-                - !Ref 'AWS::Region'
-                - ':'
-                - !Ref 'AWS::AccountId'
-                - ':topic/heatermeter*'
-                - !Ref HeatermeterThingID
+            Resource: !Sub 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/heatermeter*'
+          - Action: 'iot:Subscribe'
+            Effect: Allow
+            Resource: !Sub 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/heatermeter*'
+          - Action: 'iot:Connect'
+            Effect: Allow
+            Resource: !Sub 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:client/heatermeter'
  
   IoTRole:
     Type: AWS::IAM::Role
