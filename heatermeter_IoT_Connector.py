@@ -96,7 +96,7 @@ myAWSIoTMQTTClient.configureConnectDisconnectTimeout(10)  # 10 sec
 myAWSIoTMQTTClient.configureMQTTOperationTimeout(5)  # 5 sec
 
 myAWSIoTMQTTClient.connect()
-myAWSIoTMQTTClient.subscribe(topic, 1, customCallback)
+# myAWSIoTMQTTClient.subscribe(topic, 1, customCallback)
 
 if config['heatermeter_sse_url']:
     sseMessages = SSEClient(config['heatermeter_sse_url'])

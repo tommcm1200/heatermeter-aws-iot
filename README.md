@@ -24,7 +24,8 @@ check /etc/opkg/distfeeds.conf and update dist feeds as needed.
 
 `
 opkg update
-opkg install git
+opkg upgrade openssl-util
+opkg upgrade libopenssl
 opkg install git-http
 opkg install python
 
@@ -38,22 +39,19 @@ scp *.pem root@192.168.1.37:/root/heatermeter-aws-iot/certs
 `
 
 ## Notes:
-opkg print-architecture
-opkg 
-/etc/opkg/distfeeds.conf
+vi /etc/opkg/distfeeds.conf
+```
 src/gz reboot_core http://downloads.lede-project.org/snapshots/targets/brcm2708/bcm2708/packages
 src/gz reboot_base http://downloads.lede-project.org/snapshots/packages/arm_arm1176jzf-s_vfp/base
 # src/gz reboot_linkmeter http://downloads.lede-project.org/snapshots/packages/arm_arm1176jzf-s_vfp/linkmeter
 # src/gz reboot_luci http://downloads.lede-project.org/snapshots/packages/arm_arm1176jzf-s_vfp/luci
 src/gz reboot_packages http://downloads.lede-project.org/snapshots/packages/arm_arm1176jzf-s_vfp/packages
+```
 
 
-opkg install http://downloads.lede-project.org/snapshots/packages/arm_arm1176jzf-s_vfp/packages/git_2.19.1-1_arm_arm1176jzf-s_vfp.ipk
-
-opkg install http://downloads.lede-project.org/snapshots/packages/arm_arm1176jzf-s_vfp/packages/git-http_2.19.1-1_arm_arm1176jzf-s_vfp.ipk
-
-opkg install http://downloads.lede-project.org/snapshots/packages/arm_arm1176jzf-s_vfp/packages/python-light_2.7.15-1_arm_arm1176jzf-s_vfp.ipk
-
+-----
+python-pyopenssl
+python3
 
 
 https://zzz.buzz/2016/02/20/using-git-on-opkg-powered-systems/ 
@@ -65,26 +63,52 @@ pip install sseclient
 
 https://github.com/w4ilun/edison-guides/wiki/Installing-Git-on-Intel-Edison
 
+https://relayr.readthedocs.io/en/latest/openwrt.html
 
 
+root@LEDE:~# python -c "import ssl"
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/lib/python2.7/ssl.py", line 98, in <module>
+ImportError: Error relocating /usr/lib/python2.7/lib-dynload/_ssl.so: SSL_CTX_set_next_proto_select_cb: symbol not found
+root@LEDE:~# ldd /usr/lib/python2.7/lib-dynload/_ssl.so
+	ldd (0x7f58b000)
+	libssl.so.1.0.0 => /usr/lib/libssl.so.1.0.0 (0xb6e9f000)
+	libcrypto.so.1.0.0 => /usr/lib/libcrypto.so.1.0.0 (0xb6d72000)
+	libpython2.7.so.1.0 => /usr/lib/libpython2.7.so.1.0 (0xb6c02000)
+	libgcc_s.so.1 => /lib/libgcc_s.so.1 (0xb6be8000)
+	libc.so => ldd (0x7f58b000)
+	libz.so.1 => /usr/lib/libz.so.1 (0xb6bc6000)
+Error relocating /usr/lib/python2.7/lib-dynload/_ssl.so: SSL_CTX_set_next_proto_select_cb: symbol not found
+Error relocating /usr/lib/python2.7/lib-dynload/_ssl.so: SSL_CTX_set_next_protos_advertised_cb: symbol not found
+Error relocating /usr/lib/python2.7/lib-dynload/_ssl.so: SSL_get0_next_proto_negotiated: symbol not found
 
-Hi.
+-----
 
-I'm a new owner of a Heatermeter v4.3 and kicking off a little IoT project to enhance some of the features.  
+opkg list-upgradable
+opkg upgrade libopenssl
 
-I'm wanting to install Git and Python packages to help facilitate with some mods but have an issue with installing packages.  Any guidance from anyone who has attempted this before would be much appreciated.
+https://openwrt.org/docs/guide-user/luci/getting-rid-of-luci-https-certificate-warnings
 
-Results: 
-root@HEATERMETER:~# opkg update
-*** Failed to download the package list from http://downloads.lede-project.org/snapshots/packages/arm_arm1176jzf-s_vfp/linkmeter/Packages.gz
-
-root@HEATERMETER:~# wget http://downloads.lede-project.org/snapshots/packages/arm_arm1176jzf-s_vfp/linkmeter/Packages.gz
-Downloading 'http://downloads.lede-project.org/snapshots/packages/arm_arm1176jzf-s_vfp/linkmeter/Packages.gz'
-Connecting to 148.251.78.235:80
-HTTP error 404
-
-Browsing to http://downloads.lede-project.org/snapshots/packages/arm_arm1176jzf-s_vfp/ I see no "linkmeter" folder.
-
-Has the package list been moved?  What's the best package URL should I use instead?  
-
-Thx.
+root@LEDE:/etc/ssl# openssl req -x509 -nodes -days 730 -newkey rsa:2048 -keyout mycert.key -out mycert.crt -config myconfig.con
+f
+Error relocating /usr/bin/openssl: SSL_CTX_set_srp_strength: symbol not found
+Error relocating /usr/bin/openssl: SSL_set_srp_server_param: symbol not found
+Error relocating /usr/bin/openssl: SRP_create_verifier: symbol not found
+Error relocating /usr/bin/openssl: SRP_check_known_gN_param: symbol not found
+Error relocating /usr/bin/openssl: SRP_VBASE_init: symbol not found
+Error relocating /usr/bin/openssl: SSL_get_srp_g: symbol not found
+Error relocating /usr/bin/openssl: SSL_CTX_set_srp_cb_arg: symbol not found
+Error relocating /usr/bin/openssl: SRP_VBASE_get1_by_user: symbol not found
+Error relocating /usr/bin/openssl: SSL_CTX_set_srp_username_callback: symbol not found
+Error relocating /usr/bin/openssl: SRP_user_pwd_free: symbol not found
+Error relocating /usr/bin/openssl: SSL_CTX_set_next_proto_select_cb: symbol not found
+Error relocating /usr/bin/openssl: SRP_VBASE_new: symbol not found
+Error relocating /usr/bin/openssl: SSL_CTX_set_srp_username: symbol not found
+Error relocating /usr/bin/openssl: SSL_CTX_set_next_protos_advertised_cb: symbol not found
+Error relocating /usr/bin/openssl: SRP_get_default_gN: symbol not found
+Error relocating /usr/bin/openssl: SSL_get_srp_username: symbol not found
+Error relocating /usr/bin/openssl: SSL_CTX_set_srp_client_pwd_callback: symbol not found
+Error relocating /usr/bin/openssl: SSL_get_srp_N: symbol not found
+Error relocating /usr/bin/openssl: SSL_get0_next_proto_negotiated: symbol not found
+Error relocating /usr/bin/openssl: SSL_CTX_set_srp_verify_param_callback: symbol not found

@@ -14,9 +14,11 @@ fi
 if [ ! -d ./aws-iot-device-sdk-python ]; then
   printf "\nInstalling AWS SDK...\n"
   git clone https://github.com/aws/aws-iot-device-sdk-python.git
-  pushd aws-iot-device-sdk-python
+  # pushd aws-iot-device-sdk-python
+  cd ./aws-iot-device-sdk-python
   python setup.py install
-  popd
+  # popd
+  cd ..
 fi
 
 # run Heatermeter AWS IOT Connector app using certificates downloaded in package
