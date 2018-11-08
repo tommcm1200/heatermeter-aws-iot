@@ -1,13 +1,10 @@
 # stop script on error
 set -e
 
-# Macaddress
-mac_address = cat /sys/class/net/wlan0/address | tr -d :
-
 # Check to see if root CA file exists, download if not
 if [ ! -f ./certs/root-CA.crt ]; then
   printf "\nDownloading AWS IoT Root CA certificate from AWS...\n"
-  curl https://www.amazontrust.com/repository/AmazonRootCA1.pem > root-CA.crt
+  curl https://www.amazontrust.com/repository/AmazonRootCA1.pem > ./certs/root-CA.crt
 fi
 
 # install AWS Device SDK for Python if not already installed

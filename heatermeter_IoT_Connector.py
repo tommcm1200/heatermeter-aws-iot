@@ -40,26 +40,39 @@ parser = SafeConfigParser()
 parser.read('heatermeter_IoT_Connector.ini')
 print("\n")
 print ("Configuration:")
-print ("\taws_iot_endpoint: %s" % parser.get('DEFAULT', 'aws_iot_endpoint'))
-print ("\troot_ca_cert_path: %s" % parser.get('DEFAULT', 'root_ca_cert_path'))
-print ("\tcert_path: %s" % parser.get('DEFAULT', 'cert_path'))
-print ("\tprivate_key_path: %s" % parser.get('DEFAULT', 'private_key_path'))
-print ("\theatermeter_sse_url: %s" % parser.get('DEFAULT', 'heatermeter_sse_url'))
-print ("\theatermeter_macaddress: %s" % parser.get('DEFAULT', 'heatermeter_macaddress'))
-print ("\tsample_event_file_path: %s" % parser.get('DEFAULT', 'sample_event_file_path'))
-print ("\twebsocket_port: %s" % parser.get('DEFAULT', 'websocket_port'))
-print ("\tclient_id: %s" % parser.get('DEFAULT', 'client_id'))
-print("\n")
-
 config = {}
 config['aws_iot_endpoint'] = parser.get('DEFAULT', 'aws_iot_endpoint')
+print ("\taws_iot_endpoint: %s" % parser.get('DEFAULT', 'aws_iot_endpoint'))
+
 config['root_ca_cert_path'] = parser.get('DEFAULT', 'root_ca_cert_path')
+print ("\troot_ca_cert_path: %s" % parser.get('DEFAULT', 'root_ca_cert_path'))
+
 config['cert_path'] = parser.get('DEFAULT', 'cert_path')
+print ("\tcert_path: %s" % parser.get('DEFAULT', 'cert_path'))
+
 config['private_key_path'] = parser.get('DEFAULT', 'private_key_path')
-config['heatermeter_sse_url'] = parser.get('DEFAULT', 'heatermeter_sse_url')
+print ("\tprivate_key_path: %s" % parser.get('DEFAULT', 'private_key_path'))
+
 config['heatermeter_macaddress'] = parser.get('DEFAULT', 'heatermeter_macaddress')
+print ("\theatermeter_macaddress: %s" % parser.get('DEFAULT', 'heatermeter_macaddress'))
+
 config['websocket_port'] = parser.get('DEFAULT', 'websocket_port')
+print ("\twebsocket_port: %s" % parser.get('DEFAULT', 'websocket_port'))
+
 config['client_id'] = parser.get('DEFAULT', 'client_id')
+print ("\tclient_id: %s" % parser.get('DEFAULT', 'client_id'))
+
+config['use_local_event_file'] = parser.getboolean('DEFAULT', 'use_local_event_file')
+print ("\tuse_local_event_file: %s" % parser.get('DEFAULT', 'use_local_event_file'))
+
+config['sample_event_file_path'] = parser.get('DEFAULT', 'sample_event_file_path')
+print ("\tsample_event_file_path: %s" % parser.get('DEFAULT', 'sample_event_file_path'))
+
+config['heatermeter_sse_url'] = parser.get('DEFAULT', 'heatermeter_sse_url')
+print ("\theatermeter_sse_url: %s" % parser.get('DEFAULT', 'heatermeter_sse_url'))
+
+
+print("\n")
 
 host = config['aws_iot_endpoint']
 rootCAPath = config['root_ca_cert_path']
@@ -67,10 +80,10 @@ certificatePath = config['cert_path']
 privateKeyPath = config['private_key_path']
 sseURL = config['heatermeter_sse_url']
 topic = "heatermeter/%s" % config['heatermeter_macaddress']
-# sampleEventFilePath =  config['sample_event_file_path']
 clientId = config['client_id']
-port = config['websocket_port']
 port = int(config['websocket_port'])
+sample_event_file_path = config['sample_event_file_path']
+use_local_event_file = config['use_local_event_file']
 
 ############################################################
 
@@ -98,11 +111,32 @@ myAWSIoTMQTTClient.configureMQTTOperationTimeout(5)  # 5 sec
 myAWSIoTMQTTClient.connect()
 # myAWSIoTMQTTClient.subscribe(topic, 1, customCallback)
 
-if config['heatermeter_sse_url']:
-    sseMessages = SSEClient(config['heatermeter_sse_url'])
+# if sseURL:
+#     sseMessages = SSEClient(sseURL)
+#     for sseMsg in sseMessages:
+#         myAWSIoTMQTTClient.publish(topic, sseMsg.data, 1)
+#         print('Published topic %s: %s\n' % (topic, sseMsg.data))
+
+if use_local_event_file is True:
+    with open(sample_event_file_path) as f:
+        sampleEventData = json.load(f)
+        # print(sampleEventData)
+        loopCount = 0
+        while True:            
+            message = {}
+            message = sampleEventData
+            messageJson = json.dumps(message)
+            myAWSIoTMQTTClient.publish(topic, messageJson, 1)
+            print('Published topic %s: %s\n' % (topic, messageJson))
+            loopCount += 1
+            time.sleep(5)
+else:
+    sseMessages = SSEClient(sseURL)
     for sseMsg in sseMessages:
         myAWSIoTMQTTClient.publish(topic, sseMsg.data, 1)
         print('Published topic %s: %s\n' % (topic, sseMsg.data))
+
+
 
 # # Publish to the same topic in a loop forever
 # if args.sampleEventFile:

@@ -22,16 +22,14 @@ Take note of the Certificate ARN to be used as a parameter int ehCloudformation 
 ### Heatermeter Configuration
 check /etc/opkg/distfeeds.conf and update dist feeds as needed.
 
-`
+```
 opkg update
-opkg upgrade openssl-util
-opkg upgrade libopenssl
+opkg upgrade openssl-util libopenssl
 opkg install git-http
 opkg install python
-
 git clone https://github.com/tommcm1200/heatermeter-aws-iot.git
 mkdir ./heatermeter-aws-iot/certs/
-`
+```
 copy certs and keys to your Heatermeter
 `
 scp *.key root@192.168.1.37:/root/heatermeter-aws-iot/certs
@@ -84,6 +82,7 @@ Error relocating /usr/lib/python2.7/lib-dynload/_ssl.so: SSL_CTX_set_next_protos
 Error relocating /usr/lib/python2.7/lib-dynload/_ssl.so: SSL_get0_next_proto_negotiated: symbol not found
 
 -----
+https://bugs.openwrt.org/index.php?do=details&task_id=1205
 
 opkg list-upgradable
 opkg upgrade libopenssl
@@ -112,3 +111,32 @@ Error relocating /usr/bin/openssl: SSL_CTX_set_srp_client_pwd_callback: symbol n
 Error relocating /usr/bin/openssl: SSL_get_srp_N: symbol not found
 Error relocating /usr/bin/openssl: SSL_get0_next_proto_negotiated: symbol not found
 Error relocating /usr/bin/openssl: SSL_CTX_set_srp_verify_param_callback: symbol not found
+
+
+----
+
+Command "python setup.py egg_info" failed with error code 1 in /tmp/pip-build-15xc0q/sseclient/
+
+ File "/usr/lib/python2.7/site-packages/pip/basecommand.py", line 215, in main
+  File "/usr/lib/python2.7/site-packages/pip/commands/install.py", line 342, in run
+  File "/usr/lib/python2.7/site-packages/pip/req/req_set.py", line 784, in install
+  File "/usr/lib/python2.7/site-packages/pip/req/req_install.py", line 851, in install
+  File "/usr/lib/python2.7/site-packages/pip/req/req_install.py", line 1064, in move_wheel_files
+  File "/usr/lib/python2.7/site-packages/pip/wheel.py", line 345, in move_wheel_files
+  File "/usr/lib/python2.7/site-packages/pip/wheel.py", line 323, in clobber
+  File "/usr/lib/python2.7/shutil.py", line 98, in copyfile
+  File "/usr/lib/python2.7/shutil.py", line 66, in copyfileobj
+IOError: [Errno 28] No space left on device
+
+-----
+
+https://raspberrypi.stackexchange.com/questions/499/how-can-i-resize-my-root-partition
+
+
+https://oldwiki.archive.openwrt.org/doc/howto/pywws?s[]=python&s[]=pip
+
+wget https://bootstrap.pypa.io/ez_setup.py
+python ez_setup.py
+git clone https://github.com/btubbs/sseclient.git
+cd ./sseclient/
+python setup.py install
