@@ -25,10 +25,12 @@ check /etc/opkg/distfeeds.conf and update dist feeds as needed.
 ```
 opkg update
 opkg upgrade openssl-util libopenssl
-opkg install git-http
-opkg install python
+opkg install git-http python-base python-codecs python-ctypes python-distutils python-email python-light python-logging python-openssl python-unittest python-xml
 git clone https://github.com/tommcm1200/heatermeter-aws-iot.git
 mkdir ./heatermeter-aws-iot/certs/
+cd ./heatermeter-aws-iot/certs/
+wget https://tommcm-heatermeter.s3.amazonaws.com/certs/3168a6b610-private.pem.key
+wget https://tommcm-heatermeter.s3.amazonaws.com/certs/3168a6b610-certificate.pem.crt
 ```
 copy certs and keys to your Heatermeter
 `

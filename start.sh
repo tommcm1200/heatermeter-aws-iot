@@ -1,6 +1,8 @@
 # stop script on error
 set -e
 
+cd /root/heatermeter-aws-iot/
+
 # Check to see if root CA file exists, download if not
 if [ ! -f ./certs/root-CA.crt ]; then
   printf "\nDownloading AWS IoT Root CA certificate from AWS...\n"
