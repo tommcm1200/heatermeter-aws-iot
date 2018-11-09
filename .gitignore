@@ -2,4 +2,5 @@ venv/
 .vscode/
 connect_device_package/
 certs/*
+app/*
 aws-iot-device-sdk-python/

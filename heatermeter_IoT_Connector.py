@@ -17,11 +17,13 @@
 
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 import logging
-import time
+import time, calendar
 import argparse
 import json
 from sseclient import SSEClient
 from ConfigParser import SafeConfigParser
+import random
+
 
 AllowedActions = ['both', 'publish', 'subscribe']
 
@@ -125,6 +127,11 @@ if use_local_event_file is True:
         while True:            
             message = {}
             message = sampleEventData
+            message['time'] = calendar.timegm(time.gmtime())
+            message['temps'][0]['c'] = str(random.randint(50,200))
+            message['temps'][1]['c'] = str(random.randint(50,200))
+            message['temps'][2]['c'] = str(random.randint(50,200))
+            message['temps'][3]['c'] = str(random.randint(50,200))
             messageJson = json.dumps(message)
             myAWSIoTMQTTClient.publish(topic, messageJson, 1)
             print('Published topic %s: %s\n' % (topic, messageJson))

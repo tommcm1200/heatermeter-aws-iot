@@ -48,6 +48,12 @@ src/gz reboot_base http://downloads.lede-project.org/snapshots/packages/arm_arm1
 src/gz reboot_packages http://downloads.lede-project.org/snapshots/packages/arm_arm1176jzf-s_vfp/packages
 ```
 
+## Auto Start
+Add the following to /etc/rc.local
+```
+cd /root/heatermeter-aws-iot/
+/root/heatermeter-aws-iot/start.sh
+```
 
 -----
 python-pyopenssl

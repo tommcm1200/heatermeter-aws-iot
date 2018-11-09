@@ -1,0 +1,1 @@
+aws s3 cp ../app/ s3://tommcm-heatermeter-app/ --recursive --acl public-read
