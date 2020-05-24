@@ -1,0 +1,20 @@
+﻿schema {
+  query: Query
+}
+
+type PaginatedTemps {
+  nextToken: String
+  probetemps: [ProbeTemp]
+}
+
+type ProbeTemp {
+  DateHour: String
+  ProbeName: String
+  ProbeTemp: String
+}
+
+type Query {
+  allTemps(count: Int, nextToken: String): PaginatedTemps!
+  allTempsByProbeName(count: Int, nextToken: String, probename: String): PaginatedTemps!
+  allTempsByProbeNameFromStartDate(count: Int, nextToken: String, probename: String, startdate: String): PaginatedTemps!
+}

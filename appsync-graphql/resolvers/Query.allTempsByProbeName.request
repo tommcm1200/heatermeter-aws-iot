@@ -1,0 +1,17 @@
+{
+    "version" : "2017-02-28",
+    "operation" : "Query",
+    "scanIndexForward" : false,
+    "query" : {
+      "expression": "ProbeName = :probename",
+        "expressionValues" : {
+          ":probename" : { "S" : "${context.arguments.probename}" }
+        }
+    }
+    #if( ${context.arguments.count} )
+        ,"limit": ${context.arguments.count}
+    #end
+    #if( ${context.arguments.nextToken} )
+        ,"nextToken": "${context.arguments.nextToken}"
+    #end
+}

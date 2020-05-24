@@ -194,8 +194,8 @@ Resources:
   WriteCapacityScalableTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
     Properties:
-      MaxCapacity: 15
-      MinCapacity: 5
+      MaxCapacity: 5
+      MinCapacity: 2
       ResourceId: !Join
         - /
         - - table
@@ -243,7 +243,7 @@ Resources:
       PolicyType: TargetTrackingScaling
       ScalingTargetId: !Ref WriteCapacityScalableTarget
       TargetTrackingScalingPolicyConfiguration:
-        TargetValue: 50.0
+        TargetValue: 75.0
         ScaleInCooldown: 60
         ScaleOutCooldown: 60
         PredefinedMetricSpecification:

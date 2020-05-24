@@ -31,12 +31,14 @@ mkdir ./heatermeter-aws-iot/certs/
 cd ./heatermeter-aws-iot/certs/
 wget https://tommcm-heatermeter.s3.amazonaws.com/certs/3168a6b610-private.pem.key
 wget https://tommcm-heatermeter.s3.amazonaws.com/certs/3168a6b610-certificate.pem.crt
+wget https://bootstrap.pypa.io/ez_setup.py
+cd ~
+python ez_setup.py
+git clone https://github.com/btubbs/sseclient.git
+cd ./sseclient/
+python setup.py install
 ```
-copy certs and keys to your Heatermeter
-`
-scp *.key root@192.168.1.37:/root/heatermeter-aws-iot/certs
-scp *.pem root@192.168.1.37:/root/heatermeter-aws-iot/certs
-`
+
 
 ## Notes:
 vi /etc/opkg/distfeeds.conf
